@@ -18,14 +18,17 @@ LABEL org.opencontainers.image.source https://github.com/obra/kicad-tools
 ADD upstream/kicad-automation-scripts/kicad-ppa.pgp .
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections && \
         apt-get -y update && \
-        apt-get -y install gnupg2 && \
-        echo 'deb http://ppa.launchpad.net/js-reynaud/kicad-5.1/ubuntu bionic main' >> /etc/apt/sources.list && \
-        apt-key add kicad-ppa.pgp && \
-        apt-get -y update && apt-get -y install --no-install-recommends kicad kicad-footprints kicad-symbols kicad-packages3d && \
-        apt-get -y purge gnupg2 && \
-        apt-get -y autoremove && \
-        rm -rf /var/lib/apt/lists/* && \
-        rm kicad-ppa.pgp
+        apt-get install -y software-properties-common && \
+        add-apt-repository ppa:kicad/kicad-dev-nightly && \
+        apt -y update && \
+        apt-get -y update && apt-get -y install --no-install-recommends \
+                kicad-nightly \
+                kicad-nightly-footprints \
+                kicad-nightly-symbols \
+                kicad-nightly-packages3d \
+                kicad-nightly-libraries \
+                kicad-nightly-templates \
+                kicad-nightly-demos
 
 COPY upstream/kicad-automation-scripts/eeschema/requirements.txt .
 RUN apt-get -y update && \
@@ -33,11 +36,9 @@ RUN apt-get -y update && \
     pip install -r requirements.txt && \
     rm requirements.txt
 
-RUN apt-get -y remove python3-pip && \
-    rm -rf /var/lib/apt/lists/*
+RUN cp /usr/lib/kicad-nightly/lib/* /usr/lib/ -r
 
-
-# Use a UTF-8 compatible LANG because KiCad 5 uses UTF-8 in the PCBNew title
+# Use a UTF-8 compatible LANG because KiCad 6 uses UTF-8 in the PCBNew title
 # This causes a "failure in conversion from UTF8_STRING to ANSI_X3.4-1968" when
 # attempting to look for the window name with xdotool.
 ENV LANG C.UTF-8
@@ -45,14 +46,14 @@ ENV LANG C.UTF-8
 COPY upstream/kicad-automation-scripts /usr/lib/python2.7/dist-packages/kicad-automation
 
 # Copy default configuration and fp_lib_table to prevent first run dialog
-COPY upstream/kicad-automation-scripts/config/* /root/.config/kicad/
+RUN mkdir -p /root/.config/kicadnightly/5.99
+COPY upstream/kicad-automation-scripts/config/* /root/.config/kicadnightly/5.99/
 
 # Copy the installed global symbol and footprint so projects built with stock
 # symbols and footprints don't break
-RUN cp /usr/share/kicad/template/sym-lib-table /root/.config/kicad/
-RUN cp /usr/share/kicad/template/fp-lib-table /root/.config/kicad/
-
-
+#RUN ls /usr/share/kicad-nightly/template
+#RUN cp /usr/share/kicad-nightly/template/sym-lib-table /root/.config/kicadnightly/5.99
+#RUN cp /usr/share/kicad-nightly/template/fp-lib-table  /root/.config/kicadnightly/5.99
 
 # Install KiPlot
 
